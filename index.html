@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMDI Resource Reservation System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        cmdi: {
+                            blue: '#0832A2',
+                            'blue-hover': '#002380',
+                            orange: '#ED7D2B',
+                            'orange-hover': '#D7691A',
+                            yellow: '#F5D010',
+                            green: '#268134',
+                            'green-hover': '#1e6829',
+                            dark: '#1B1B1B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .tab-active { border-bottom-color: #ED7D2B; color: #ED7D2B; font-weight: 700; }
+        @media print {
+            body * { visibility: hidden; }
+            #printablePass, #printablePass * { visibility: visible; }
+            #printablePass { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-cmdi-dark bg-slate-100 antialiased">
+
+    <!-- Auth / Login & Register Overlay -->
+    <div id="loginOverlay" class="fixed inset-0 z-50 bg-cmdi-dark/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 border-t-8 border-cmdi-orange max-h-[90vh] overflow-y-auto">
+            <div class="text-center space-y-1">
+                <div class="w-12 h-12 bg-cmdi-blue text-white rounded-2xl flex items-center justify-center mx-auto shadow-md border-2 border-cmdi-yellow">
+                    <i data-lucide="landmark" class="w-6 h-6 text-cmdi-yellow"></i>
+                </div>
+                <h2 class="text-xl font-black text-cmdi-dark tracking-tight">CMDI <span class="text-cmdi-orange">Reserve</span></h2>
+                <p class="text-xs font-semibold text-slate-500">CARD-MRI Development Institute, Inc.</p>
+            </div>
+
+            <!-- Auth Mode Switcher Tabs -->
+            <div class="grid grid-cols-3 bg-slate-100 p-1 rounded-xl text-[11px] font-bold text-center gap-1">
+                <button type="button" id="tabAuthStudent" onclick="setAuthTab('student-login')" class="py-2 rounded-lg transition bg-white text-cmdi-blue shadow-xs">Student Login</button>
+                <button type="button" id="tabAuthAdmin" onclick="setAuthTab('admin-login')" class="py-2 rounded-lg transition text-slate-500 hover:text-cmdi-dark">Admin Login</button>
+                <button type="button" id="tabAuthRegister" onclick="setAuthTab('student-register')" class="py-2 rounded-lg transition text-slate-500 hover:text-cmdi-dark">Register</button>
+            </div>
+
+            <!-- Student Login Form -->
+            <form id="formStudentLogin" onsubmit="handleLoginSubmit(event, 'student')" class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Student Email / ID</label>
+                    <input type="text" id="loginStudentEmail" placeholder="student@cmdi.edu.ph" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-blue outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Password</label>
+                    <input type="password" id="loginStudentPass" placeholder="••••••••" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-blue outline-none">
+                </div>
+                <button type="submit" class="w-full bg-cmdi-blue hover:bg-cmdi-blue-hover text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition">Log In as Student</button>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="shrink mx-2 text-[10px] text-slate-400 font-bold uppercase">Or Quick Access</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <button type="button" onclick="handleQuickLogin('student')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl font-semibold text-xs transition border border-slate-200">
+                    ⚡ Quick Student Demo Login
+                </button>
+            </form>
+
+            <!-- Admin Login Form -->
+            <form id="formAdminLogin" onsubmit="handleLoginSubmit(event, 'admin')" class="space-y-3 hidden">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Adviser / Admin Email</label>
+                    <input type="text" id="loginAdminEmail" placeholder="admin@cmdi.edu.ph" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-orange outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Password</label>
+                    <input type="password" id="loginAdminPass" placeholder="••••••••" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-orange outline-none">
+                </div>
+                <button type="submit" class="w-full bg-cmdi-orange hover:bg-cmdi-orange-hover text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition">Log In as Admin / Adviser</button>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="shrink mx-2 text-[10px] text-slate-400 font-bold uppercase">Or Quick Access</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <button type="button" onclick="handleQuickLogin('admin')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl font-semibold text-xs transition border border-slate-200">
+                    ⚡ Quick Admin Demo Login
+                </button>
+            </form>
+
+            <!-- Student Registration Form -->
+            <form id="formStudentRegister" onsubmit="handleRegisterStudent(event)" class="space-y-3 hidden">
+                <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-[11px] text-cmdi-blue font-medium flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+                    <span>Registration is available for <strong>Student Officers</strong> only.</span>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Full Name</label>
+                    <input type="text" id="regName" placeholder="e.g. Maria Clara" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-blue outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Student Email / ID</label>
+                    <input type="text" id="regEmail" placeholder="student.name@cmdi.edu.ph" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-blue outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Student Organization</label>
+                    <input type="text" id="regOrg" placeholder="e.g. Supreme Student Council / CS Society" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-blue outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Password</label>
+                    <input type="password" id="regPass" placeholder="••••••••" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium focus:ring-2 focus:ring-cmdi-blue outline-none">
+                </div>
+                <button type="submit" class="w-full bg-cmdi-green hover:bg-cmdi-green-hover text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition">Create Student Account</button>
+            </form>
+        </div>
+    </div>
+
+    <header class="bg-cmdi-blue text-white border-b-4 border-cmdi-orange sticky top-0 z-30 shadow-md">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
+                <div class="bg-white p-1.5 rounded-xl text-cmdi-blue shadow-inner flex items-center justify-center">
+                    <i data-lucide="landmark" class="w-5 h-5 text-cmdi-blue"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-base tracking-tight text-white block">CMDI <span class="text-cmdi-yellow">Reserve</span></span>
+                    <span id="headerRoleBadge" class="text-[10px] text-orange-200 font-medium block -mt-0.5">CARD-MRI Development Institute</span>
+                </div>
+            </div>
+
+            <!-- Profile & Sign Out -->
+            <div class="flex items-center space-x-3">
+                <div class="text-right hidden sm:block">
+                    <p id="userNameText" class="text-xs font-bold text-white">Student Officer</p>
+                    <p id="userRoleText" class="text-[10px] text-orange-200">CS Society</p>
+                </div>
+                <button onclick="handleLogout()" title="Sign Out" class="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-slate-900/40 border-t border-white/10 px-4">
+            <div id="navContainer" class="max-w-6xl mx-auto flex space-x-6 text-xs font-medium text-slate-200">
+                <!-- Injected via JavaScript based on role -->
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- Toast Notifications -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 bg-cmdi-dark text-white text-xs font-semibold rounded-xl shadow-2xl flex items-center space-x-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-2 border-l-4 border-cmdi-yellow">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-cmdi-yellow"></i>
+            <span id="toastMsg">Notification</span>
+        </div>
+
+        <section id="view-resources" class="space-y-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h1 class="text-base font-extrabold text-cmdi-dark">CMDI Facility & Equipment Catalog</h1>
+                    <p class="text-xs text-slate-500">Select a campus resource to submit a reservation</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <select id="categoryFilter" onchange="renderResources()" class="bg-slate-50 border border-slate-300 text-xs font-semibold text-cmdi-dark rounded-xl px-3 py-2 focus:ring-2 focus:ring-cmdi-blue outline-none">
+                        <option value="ALL">All Categories</option>
+                        <option value="Venue">Venues & Halls</option>
+                        <option value="Tech">AV & Electronics</option>
+                        <option value="Equipment">Furniture & Props</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="resourceGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamic Resource Cards -->
+            </div>
+        </section>
+
+        <section id="view-my-reservations" class="space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-base font-extrabold text-cmdi-dark">My Organization Requests (Records)</h1>
+                    <p class="text-xs text-slate-500">Track and download approval passes for your bookings</p>
+                </div>
+                <button onclick="switchTab('resources')" class="px-3.5 py-2 bg-cmdi-orange hover:bg-cmdi-orange-hover text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>New Booking</span>
+                </button>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-bold text-[10px] tracking-wider">
+                            <tr>
+                                <th class="p-4">ID & Event Purpose</th>
+                                <th class="p-4">Resource Name</th>
+                                <th class="p-4">Date & Time Slot</th>
+                                <th class="p-4">Approval Status</th>
+                                <th class="p-4 text-right">Pass</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myRequestsTable" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Dynamic Requests -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-approvals" class="space-y-4 hidden">
+            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <h1 class="text-base font-extrabold text-cmdi-dark">Adviser Approval Queue</h1>
+                    <p class="text-xs text-slate-500">Review pending student organization reservations</p>
+                </div>
+                <span id="approvalBadgeCount" class="text-xs bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-full border border-amber-300">0 Pending</span>
+            </div>
+
+            <div id="approvalsList" class="space-y-3">
+                <!-- Dynamic Approval Cards -->
+            </div>
+        </section>
+
+        <section id="view-calendar" class="space-y-4 hidden">
+            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <h1 class="text-base font-extrabold text-cmdi-dark">Campus Resource Scheduling</h1>
+                    <p class="text-xs text-slate-500">View daily booking occupancy</p>
+                </div>
+                <input type="date" id="calendarDate" onchange="renderCalendar()" class="bg-slate-50 border border-slate-300 text-xs font-semibold rounded-xl px-3 py-2 outline-none">
+            </div>
+
+            <div id="calendarList" class="space-y-3">
+                <!-- Dynamic Timeline Cards -->
+            </div>
+        </section>
+
+        <!-- History / Audit Trail Section -->
+        <section id="view-history" class="space-y-4 hidden">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h1 class="text-base font-extrabold text-cmdi-dark">History & Audit Trail</h1>
+                <p class="text-xs text-slate-500">System event activities, updates, and status change logs</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-bold text-[10px] tracking-wider">
+                            <tr>
+                                <th class="p-4">Timestamp</th>
+                                <th class="p-4">Action Event</th>
+                                <th class="p-4">User / Performed By</th>
+                                <th class="p-4">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Dynamic Audit Logs -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="bookingModal" class="fixed inset-0 z-50 bg-cmdi-dark/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border-t-8 border-cmdi-blue">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-extrabold text-cmdi-dark text-base">Reserve CMDI Facility</h3>
+                    <p class="text-[11px] text-slate-400">Complete required booking details</p>
+                </div>
+                <button onclick="closeModal('bookingModal')" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleBookingSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-cmdi-dark mb-1">Select Facility / Item</label>
+                    <select id="bookResource" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-cmdi-dark">
+                        <!-- Dynamic Options -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-cmdi-dark mb-1">Student Organization</label>
+                    <input type="text" id="bookOrg" required placeholder="e.g. CMDI Supreme Student Council" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-cmdi-dark mb-1">Event Title / Purpose</label>
+                    <input type="text" id="bookPurpose" required placeholder="e.g. Annual Leadership Workshop" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-cmdi-dark mb-1">Reservation Date</label>
+                        <input type="date" id="bookDate" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-cmdi-dark mb-1">Time Slot</label>
+                        <select id="bookTime" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold">
+                            <option value="08:00 - 12:00">Morning (8am - 12pm)</option>
+                            <option value="13:00 - 17:00">Afternoon (1pm - 5pm)</option>
+                            <option value="17:30 - 20:30">Evening (5:30pm - 8:30pm)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex space-x-2">
+                    <button type="button" onclick="closeModal('bookingModal')" class="w-1/2 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="w-1/2 py-2.5 bg-cmdi-blue hover:bg-cmdi-blue-hover text-white rounded-xl text-xs font-bold shadow-md">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="passModal" class="fixed inset-0 z-50 bg-cmdi-dark/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+            <div id="printablePass" class="space-y-4 text-cmdi-dark">
+                <!-- CMDI Official Header Banner -->
+                <div class="bg-cmdi-blue text-white p-3.5 rounded-xl text-center space-y-0.5 border-b-4 border-cmdi-orange">
+                    <h5 class="text-[10px] uppercase font-bold text-cmdi-yellow tracking-wider">CARD-MRI Development Institute, Inc.</h5>
+                    <h4 class="font-extrabold text-sm tracking-tight">OFFICIAL RESERVATION PASS</h4>
+                    <p id="passId" class="text-[10px] font-mono text-slate-200">#RES-101</p>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <span class="text-xs font-bold text-slate-600">Approval Status</span>
+                    <span id="passStatus" class="px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">Approved</span>
+                </div>
+
+                <div class="space-y-2 text-xs divide-y divide-slate-100">
+                    <div class="pt-1"><span class="text-slate-400 block text-[10px]">Resource</span> <strong id="passResource" class="text-cmdi-blue font-bold text-sm">CMDI Main Auditorium</strong></div>
+                    <div class="pt-1"><span class="text-slate-400 block text-[10px]">Student Organization</span> <strong id="passOrg" class="text-cmdi-dark">CS Society</strong></div>
+                    <div class="pt-1"><span class="text-slate-400 block text-[10px]">Purpose</span> <span id="passPurpose" class="font-semibold text-slate-700">Leadership Summit</span></div>
+                    <div class="pt-1"><span class="text-slate-400 block text-[10px]">Scheduled Slot</span> <span id="passSchedule" class="font-semibold text-cmdi-orange">Oct 12, 2026 (8am - 12pm)</span></div>
+                </div>
+
+                <div class="bg-slate-100 p-2.5 rounded-xl text-center text-[10px] text-slate-500 font-mono border border-dashed border-slate-300">
+                    Presented to CMDI Property Office upon entry
+                </div>
+            </div>
+
+            <div class="pt-1 flex space-x-2 no-print">
+                <button onclick="window.print()" class="w-1/2 py-2.5 bg-cmdi-orange hover:bg-cmdi-orange-hover text-white rounded-xl text-xs font-bold shadow-md">Print Pass</button>
+                <button onclick="closeModal('passModal')" class="w-1/2 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-100">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const KEY_RES = 'cmdi_res_v2';
+        const KEY_REQ = 'cmdi_req_v2';
+        const KEY_ROLE = 'cmdi_role_v2';
+        const KEY_USERS = 'cmdi_users_v2';
+        const KEY_SESSION_USER = 'cmdi_session_user_v2';
+        const KEY_AUDIT = 'cmdi_audit_v2';
+
+        const defaultUsers = [
+            { email: 'student@cmdi.edu.ph', pass: 'student123', name: 'Student Officer', org: 'Supreme Student Council', role: 'student' },
+            { email: 'admin@cmdi.edu.ph', pass: 'admin123', name: 'Dr. Evelyn Vance', org: 'CMDI Adviser', role: 'admin' }
+        ];
+
+        const defaultResources = [
+            { id: 'R1', name: 'CMDI Main Auditorium', category: 'Venue', status: 'Available', location: 'Admin Bldg 3rd Flr', icon: 'building-2' },
+            { id: 'R2', name: 'Multi-Purpose Hall A', category: 'Venue', status: 'Available', location: 'Student Activity Center', icon: 'door-closed' },
+            { id: 'R3', name: 'CMDI Conference Room', category: 'Venue', status: 'Available', location: 'Executive Hall', icon: 'users' },
+            { id: 'R4', name: 'High-Lumen HD Projector Set', category: 'Tech', status: 'Available', location: 'IT & AV Department', icon: 'projector' },
+            { id: 'R5', name: 'PA Sound System & Wireless Mics', category: 'Tech', status: 'Available', location: 'AV Storage Room', icon: 'mic' },
+            { id: 'R6', name: 'Folding Event Chairs (x50)', category: 'Equipment', status: 'Available', location: 'Property Warehouse', icon: 'armchair' }
+        ];
+
+        const defaultRequests = [
+            { id: 'REQ-201', org: 'Supreme Student Council', purpose: 'CMDI Foundation Day Briefing', resourceId: 'R1', resourceName: 'CMDI Main Auditorium', date: '2026-10-12', time: '08:00 - 12:00', status: 'Approved' },
+            { id: 'REQ-202', org: 'Junior Executive Guild', purpose: 'Microfinance Seminar', resourceId: 'R5', resourceName: 'PA Sound System & Wireless Mics', date: '2026-10-15', time: '13:00 - 17:00', status: 'Pending' }
+        ];
+
+        const defaultAuditLogs = [
+            { timestamp: '2026-10-05 08:30', event: 'Request Approved', user: 'Dr. Evelyn Vance', details: 'Approved REQ-201 for CMDI Main Auditorium' },
+            { timestamp: '2026-10-05 08:15', event: 'Request Submitted', user: 'Student Officer', details: 'Submitted REQ-202 for PA Sound System' }
+        ];
+
+        let resources = [];
+        let requests = [];
+        let users = [];
+        let auditLogs = [];
+        let currentUser = null;
+        let currentRole = null;
+        let activeTab = 'resources';
+
+        window.onload = function() {
+            resources = JSON.parse(localStorage.getItem(KEY_RES)) || defaultResources;
+            requests = JSON.parse(localStorage.getItem(KEY_REQ)) || defaultRequests;
+            users = JSON.parse(localStorage.getItem(KEY_USERS)) || defaultUsers;
+            auditLogs = JSON.parse(localStorage.getItem(KEY_AUDIT)) || defaultAuditLogs;
+            saveData();
+
+            document.getElementById('calendarDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('bookDate').value = new Date().toISOString().split('T')[0];
+
+            const savedUser = JSON.parse(localStorage.getItem(KEY_SESSION_USER));
+            const savedRole = localStorage.getItem(KEY_ROLE);
+
+            if (savedRole) {
+                const userObj = savedUser || (savedRole === 'admin' ? users[1] : users[0]);
+                handleLogin(savedRole, userObj);
+            } else {
+                document.getElementById('loginOverlay').classList.remove('hidden');
+            }
+            lucide.createIcons();
+        };
+
+        function saveData() {
+            localStorage.setItem(KEY_RES, JSON.stringify(resources));
+            localStorage.setItem(KEY_REQ, JSON.stringify(requests));
+            localStorage.setItem(KEY_USERS, JSON.stringify(users));
+            localStorage.setItem(KEY_AUDIT, JSON.stringify(auditLogs));
+        }
+
+        function logAuditEvent(event, details) {
+            const now = new Date();
+            const timestamp = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + ' ' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0');
+                
+            const user = currentUser ? currentUser.name : 'System';
+            auditLogs.unshift({ timestamp, event, user, details });
+            saveData();
+            renderHistory();
+        }
+
+        function setAuthTab(tab) {
+            const tabs = ['student-login', 'admin-login', 'student-register'];
+            tabs.forEach(t => {
+                const form = document.getElementById(`form${t.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}`);
+                if (form) form.classList.add('hidden');
+            });
+
+            document.getElementById('tabAuthStudent').className = 'py-2 rounded-lg transition text-slate-500 hover:text-cmdi-dark';
+            document.getElementById('tabAuthAdmin').className = 'py-2 rounded-lg transition text-slate-500 hover:text-cmdi-dark';
+            document.getElementById('tabAuthRegister').className = 'py-2 rounded-lg transition text-slate-500 hover:text-cmdi-dark';
+
+            if (tab === 'student-login') {
+                document.getElementById('formStudentLogin').classList.remove('hidden');
+                document.getElementById('tabAuthStudent').className = 'py-2 rounded-lg transition bg-white text-cmdi-blue shadow-xs font-bold';
+            } else if (tab === 'admin-login') {
+                document.getElementById('formAdminLogin').classList.remove('hidden');
+                document.getElementById('tabAuthAdmin').className = 'py-2 rounded-lg transition bg-white text-cmdi-orange shadow-xs font-bold';
+            } else if (tab === 'student-register') {
+                document.getElementById('formStudentRegister').classList.remove('hidden');
+                document.getElementById('tabAuthRegister').className = 'py-2 rounded-lg transition bg-white text-cmdi-green shadow-xs font-bold';
+            }
+            lucide.createIcons();
+        }
+
+        function handleRegisterStudent(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const org = document.getElementById('regOrg').value.trim();
+            const pass = document.getElementById('regPass').value;
+
+            if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+                showToast('An account with this email/ID already exists!');
+                return;
+            }
+
+            const newUser = { name, email, org, pass, role: 'student' };
+            users.push(newUser);
+            saveData();
+
+            logAuditEvent('User Registered', `New student account created for ${name} (${org})`);
+            showToast('Account registered successfully! Logging you in...');
+            handleLogin('student', newUser);
+        }
+
+        function handleLoginSubmit(e, role) {
+            e.preventDefault();
+            const email = role === 'student' ? document.getElementById('loginStudentEmail').value.trim() : document.getElementById('loginAdminEmail').value.trim();
+            const pass = role === 'student' ? document.getElementById('loginStudentPass').value : document.getElementById('loginAdminPass').value;
+
+            const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.pass === pass && u.role === role);
+
+            if (foundUser) {
+                handleLogin(role, foundUser);
+                showToast(`Welcome back, ${foundUser.name}!`);
+            } else {
+                showToast('Invalid credentials! Please check your details.');
+            }
+        }
+
+        function handleQuickLogin(role) {
+            const userObj = role === 'admin' ? users.find(u => u.role === 'admin') : users.find(u => u.role === 'student');
+            handleLogin(role, userObj);
+            showToast(`Logged in as ${userObj.name}`);
+        }
+
+        function handleLogin(role, userObj) {
+            currentRole = role;
+            currentUser = userObj || { name: role === 'admin' ? 'Dr. Evelyn Vance' : 'Student Officer', org: role === 'admin' ? 'CMDI Adviser' : 'CS Society' };
+
+            localStorage.setItem(KEY_ROLE, role);
+            localStorage.setItem(KEY_SESSION_USER, JSON.stringify(currentUser));
+            document.getElementById('loginOverlay').classList.add('hidden');
+
+            const nav = document.getElementById('navContainer');
+            const roleBadge = document.getElementById('headerRoleBadge');
+            const userName = document.getElementById('userNameText');
+            const userRole = document.getElementById('userRoleText');
+
+            userName.innerText = currentUser.name;
+            userRole.innerText = currentUser.org;
+
+            if (role === 'admin') {
+                roleBadge.innerText = 'Admin / Faculty Adviser Portal';
+
+                nav.innerHTML = `
+                    <button onclick="switchTab('approvals')" id="tab-approvals" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="check-square" class="w-4 h-4"></i> Approvals
+                    </button>
+                    <button onclick="switchTab('resources')" id="tab-resources" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="box" class="w-4 h-4"></i> Facilities Catalog
+                    </button>
+                    <button onclick="switchTab('calendar')" id="tab-calendar" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> Schedule
+                    </button>
+                    <button onclick="switchTab('history')" id="tab-history" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="history" class="w-4 h-4"></i> History / Audit
+                    </button>
+                `;
+                switchTab('approvals');
+            } else {
+                roleBadge.innerText = 'Student Organization Portal';
+
+                nav.innerHTML = `
+                    <button onclick="switchTab('resources')" id="tab-resources" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="box" class="w-4 h-4"></i> Reserve Facility
+                    </button>
+                    <button onclick="switchTab('my-reservations')" id="tab-my-reservations" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> My Requests
+                    </button>
+                    <button onclick="switchTab('calendar')" id="tab-calendar" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> Schedule
+                    </button>
+                    <button onclick="switchTab('history')" id="tab-history" class="py-3 border-b-2 border-transparent font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="history" class="w-4 h-4"></i> History / Audit
+                    </button>
+                `;
+                switchTab('resources');
+            }
+
+            renderResources();
+            renderMyRequests();
+            renderApprovals();
+            renderCalendar();
+            renderHistory();
+            lucide.createIcons();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem(KEY_ROLE);
+            localStorage.removeItem(KEY_SESSION_USER);
+            currentRole = null;
+            currentUser = null;
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            setAuthTab('student-login');
+        }
+
+        function goHome() {
+            if (currentRole === 'admin') switchTab('approvals');
+            else switchTab('resources');
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const views = ['resources', 'my-reservations', 'approvals', 'calendar', 'history'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.classList.add('hidden');
+                const btn = document.getElementById(`tab-${v}`);
+                if (btn) btn.className = 'py-3 border-b-2 border-transparent text-slate-300 hover:text-white font-medium flex items-center gap-1.5 transition';
+            });
+
+            const activeView = document.getElementById(`view-${tabId}`);
+            if (activeView) activeView.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) activeBtn.className = 'py-3 border-b-2 tab-active font-bold flex items-center gap-1.5 transition';
+
+            lucide.createIcons();
+        }
+
+        function renderResources() {
+            const grid = document.getElementById('resourceGrid');
+            const cat = document.getElementById('categoryFilter').value;
+
+            const filtered = resources.filter(r => cat === 'ALL' || r.category === cat);
+
+            grid.innerHTML = filtered.map(r => `
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div class="p-2.5 rounded-xl bg-slate-100 text-cmdi-blue">
+                            <i data-lucide="${r.icon || 'box'}" class="w-5 h-5"></i>
+                        </div>
+                        <span class="px-2.5 py-0.5 text-[10px] font-extrabold rounded-full ${r.status === 'Available' ? 'bg-emerald-100 text-cmdi-green border border-emerald-300' : 'bg-red-100 text-red-800 border border-red-300'}">
+                            ${r.status}
+                        </span>
+                    </div>
+
+                    <div>
+                        <h3 class="font-extrabold text-cmdi-dark text-sm">${escapeHtml(r.name)}</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">${r.category} • ${escapeHtml(r.location)}</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100">
+                        ${currentRole === 'admin' ? `
+                            <button onclick="toggleResourceStatus('${r.id}')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-cmdi-dark font-bold text-xs rounded-xl transition">
+                                Set to ${r.status === 'Available' ? 'Maintenance' : 'Available'}
+                            </button>
+                        ` : `
+                            <button onclick="openBookingModal('${r.id}')" ${r.status !== 'Available' ? 'disabled' : ''} class="w-full py-2 bg-cmdi-blue hover:bg-cmdi-blue-hover disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                                Reserve Resource
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function toggleResourceStatus(id) {
+            const res = resources.find(r => r.id === id);
+            if (res) {
+                res.status = res.status === 'Available' ? 'Maintenance' : 'Available';
+                saveData();
+                renderResources();
+                logAuditEvent('Status Modified', `Changed status of ${res.name} to ${res.status}`);
+                showToast(`Resource status changed to ${res.status}`);
+            }
+        }
+
+        function renderMyRequests() {
+            const tbody = document.getElementById('myRequestsTable');
+            if (requests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">No requests submitted yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = requests.map(r => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4">
+                        <span class="font-mono font-bold text-cmdi-orange text-[10px]">${r.id}</span>
+                        <p class="font-bold text-cmdi-dark text-xs">${escapeHtml(r.purpose)}</p>
+                    </td>
+                    <td class="p-4 font-semibold text-slate-800 text-xs">${escapeHtml(r.resourceName)}</td>
+                    <td class="p-4 text-slate-500 text-xs">${r.date} (${r.time})</td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 text-[10px] font-extrabold rounded-full ${getStatusBadge(r.status)}">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <button onclick="openPass('${r.id}')" class="p-2 bg-slate-100 hover:bg-cmdi-blue hover:text-white text-cmdi-blue rounded-xl transition shadow-xs" title="View Reservation Pass">
+                            <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderApprovals() {
+            const container = document.getElementById('approvalsList');
+            const pending = requests.filter(r => r.status === 'Pending');
+
+            document.getElementById('approvalBadgeCount').innerText = `${pending.length} Pending`;
+
+            if (pending.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center text-slate-400 border border-slate-200">
+                        <i data-lucide="check-circle-2" class="w-8 h-8 text-cmdi-green mx-auto mb-2"></i>
+                        <p class="font-semibold text-xs">All pending request queues are clear.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = pending.map(r => `
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-cmdi-orange">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-mono text-cmdi-orange font-bold">${r.id} • ${escapeHtml(r.org)}</span>
+                        <h4 class="font-bold text-cmdi-dark text-sm">${escapeHtml(r.purpose)}</h4>
+                        <p class="text-xs text-slate-600"><strong class="text-cmdi-blue">${escapeHtml(r.resourceName)}</strong> — ${r.date} (${r.time})</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <button onclick="updateStatus('${r.id}', 'Rejected')" class="px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl transition">
+                            Decline
+                        </button>
+                        <button onclick="updateStatus('${r.id}', 'Approved')" class="px-4 py-1.5 bg-cmdi-green hover:bg-cmdi-green-hover text-white font-bold text-xs rounded-xl shadow-sm transition">
+                            Approve
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function updateStatus(id, newStatus) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                req.status = newStatus;
+                saveData();
+                renderApprovals();
+                renderMyRequests();
+                renderCalendar();
+                logAuditEvent(`Request ${newStatus}`, `Set status of ${id} (${req.purpose}) to ${newStatus}`);
+                showToast(`Request ${id} marked as ${newStatus}`);
+            }
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendarList');
+            const date = document.getElementById('calendarDate').value;
+
+            const dayApproved = requests.filter(r => r.date === date && r.status === 'Approved');
+
+            container.innerHTML = resources.map(res => {
+                const booking = dayApproved.find(b => b.resourceId === res.id);
+                return `
+                    <div class="bg-white rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 bg-slate-100 rounded-xl text-cmdi-blue">
+                                <i data-lucide="${res.icon || 'box'}" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-cmdi-dark text-xs">${escapeHtml(res.name)}</p>
+                                <p class="text-[10px] text-slate-400 font-medium">${res.category}</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            ${booking ? `
+                                <span class="px-3 py-1 bg-emerald-100 text-cmdi-green border border-emerald-300 rounded-xl text-xs font-bold">
+                                    Booked: ${escapeHtml(booking.org)} (${booking.time})
+                                </span>
+                            ` : `
+                                <span class="text-xs text-slate-400 font-semibold">Available All Day</span>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('historyTable');
+            if (!tbody) return;
+
+            if (auditLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">No activity logged yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = auditLogs.map(log => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 text-slate-400 font-mono text-[11px] whitespace-nowrap">${log.timestamp}</td>
+                    <td class="p-4 font-bold text-cmdi-dark text-xs">${escapeHtml(log.event)}</td>
+                    <td class="p-4 font-semibold text-cmdi-blue text-xs">${escapeHtml(log.user)}</td>
+                    <td class="p-4 text-slate-600 text-xs">${escapeHtml(log.details)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function openBookingModal(resourceId = null) {
+            const select = document.getElementById('bookResource');
+            select.innerHTML = resources.map(r => `
+                <option value="${r.id}">${escapeHtml(r.name)} (${r.category})</option>
+            `).join('');
+
+            if (currentUser && currentUser.org && currentRole === 'student') {
+                document.getElementById('bookOrg').value = currentUser.org;
+            }
+
+            if (resourceId) select.value = resourceId;
+            document.getElementById('bookingModal').classList.remove('hidden');
+        }
+
+        function handleBookingSubmit(e) {
+            e.preventDefault();
+            const resId = document.getElementById('bookResource').value;
+            const res = resources.find(r => r.id === resId);
+
+            const newReq = {
+                id: `REQ-${Math.floor(200 + Math.random() * 800)}`,
+                org: document.getElementById('bookOrg').value,
+                purpose: document.getElementById('bookPurpose').value,
+                resourceId: resId,
+                resourceName: res ? res.name : 'Resource',
+                date: document.getElementById('bookDate').value,
+                time: document.getElementById('bookTime').value,
+                status: 'Pending'
+            };
+
+            requests.unshift(newReq);
+            saveData();
+
+            logAuditEvent('Reservation Created', `Submitted request ${newReq.id} for ${newReq.resourceName}`);
+
+            closeModal('bookingModal');
+            showToast('Reservation request submitted for approval!');
+
+            renderMyRequests();
+            renderApprovals();
+            switchTab('my-reservations');
+        }
+
+        function openPass(requestId) {
+            const req = requests.find(r => r.id === requestId);
+            if (!req) return;
+
+            document.getElementById('passId').innerText = `#${req.id}`;
+            document.getElementById('passResource').innerText = req.resourceName;
+            document.getElementById('passOrg').innerText = req.org;
+            document.getElementById('passPurpose').innerText = req.purpose;
+            document.getElementById('passSchedule').innerText = `${req.date} (${req.time})`;
+            
+            const badge = document.getElementById('passStatus');
+            badge.innerText = req.status;
+            badge.className = `px-2.5 py-0.5 text-[10px] font-extrabold rounded-full ${getStatusBadge(req.status)}`;
+
+            document.getElementById('passModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'Approved') return 'bg-emerald-100 text-cmdi-green border border-emerald-300';
+            if (status === 'Pending') return 'bg-amber-100 text-amber-900 border border-amber-300';
+            return 'bg-red-100 text-red-800 border border-red-300';
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+            setTimeout(() => {
+                t.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])) : '';
+        }
+    </script>
+</body>
+</html>
